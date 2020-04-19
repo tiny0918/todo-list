@@ -3,8 +3,6 @@ import './App.css'
 import { createSet, createAdd, createRemove, createToggle } from './actions'
 import reducer from './reducers'
 
-let idSeq = Date.now()
-
 function bindActionCreators(actionCreators, dispatch) {
     const ret = {}
 
@@ -25,16 +23,12 @@ const Control = memo(function Control(props) {
 
     const onSubmit = (e) => {
         e.preventDefault()
-        const newTodo = inputRef.current.value.trim()
+        const newText = inputRef.current.value.trim()
 
-        if (newTodo.length === 0) {
+        if (newText.length === 0) {
             return
         }
-        addTodo({
-            id: ++idSeq,
-            todo: newTodo,
-            complete: false,
-        })
+        addTodo(newText)
         inputRef.current.value = ''
     }
 
@@ -55,7 +49,7 @@ const Control = memo(function Control(props) {
 
 const TodoItem = memo(function TodoItem(props) {
     const {
-        todo: { id, todo, complete },
+        todo: { id, text, complete },
         removeTodo,
         toggleTodo,
     } = props
@@ -69,7 +63,7 @@ const TodoItem = memo(function TodoItem(props) {
     return (
         <li className="todo-item">
             <input type="checkbox" checked={complete} onChange={onChange} />
-            <label className={complete ? 'complete' : ''}>{todo}</label>
+            <label className={complete ? 'complete' : ''}>{text}</label>
             <button onClick={onRemove}>&#xd7;</button>
         </li>
     )
@@ -94,28 +88,33 @@ const Todos = memo(function Todos(props) {
 })
 
 const LS_KEY = '_$-todos_'
-
+let store = {
+    todos: [],
+    incrementCount: 0,
+}
 function TodoList() {
     const [todos, setTodos] = useState([])
     const [incrementCount, setIncrementCount] = useState(0)
 
-    const dispatch = useCallback(
-        (action) => {
-            const state = { todos, incrementCount }
+    useEffect(() => {
+        Object.assign(store, { todos, incrementCount })
+    }, [todos, incrementCount])
 
-            const setters = {
-                todos: setTodos,
-                incrementCount: setIncrementCount,
-            }
+    const dispatch = (action) => {
+        const setters = {
+            todos: setTodos,
+            incrementCount: setIncrementCount,
+        }
+        if ('function' === typeof action) {
+            action(dispatch, () => store)
+            return
+        }
+        const newState = reducer(store, action)
 
-            const newState = reducer(state, action)
-
-            for (let key in newState) {
-                setters[key](newState[key])
-            }
-        },
-        [todos, incrementCount]
-    )
+        for (let key in newState) {
+            setters[key](newState[key])
+        }
+    }
 
     useEffect(() => {
         const todos = JSON.parse(localStorage.getItem(LS_KEY)) || []
