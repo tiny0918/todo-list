@@ -3,8 +3,22 @@ import './App.css'
 import { createSet, createAdd, createRemove, createToggle } from './actions'
 let idSeq = Date.now()
 
+function bindActionCreators(actionCreators, dispatch) {
+    const ret = {}
+
+    for (let key in actionCreators) {
+        ret[key] = function (...args) {
+            const actionCreator = actionCreators[key]
+            const action = actionCreator(...args)
+            dispatch(action)
+        }
+    }
+
+    return ret
+}
+
 const Control = memo(function Control(props) {
-    const { dispatch } = props
+    const { addTodo } = props
     const inputRef = useRef()
 
     const onSubmit = (e) => {
@@ -14,13 +28,11 @@ const Control = memo(function Control(props) {
         if (newTodo.length === 0) {
             return
         }
-        dispatch(
-            createAdd({
-                id: ++idSeq,
-                todo: newTodo,
-                complete: false,
-            })
-        )
+        addTodo({
+            id: ++idSeq,
+            todo: newTodo,
+            complete: false,
+        })
         inputRef.current.value = ''
     }
 
@@ -42,14 +54,15 @@ const Control = memo(function Control(props) {
 const TodoItem = memo(function TodoItem(props) {
     const {
         todo: { id, todo, complete },
-        dispatch,
+        removeTodo,
+        toggleTodo,
     } = props
 
     const onChange = () => {
-        dispatch(createToggle(id))
+        toggleTodo(id)
     }
     const onRemove = () => {
-        dispatch(createRemove(id))
+        removeTodo(id)
     }
     return (
         <li className="todo-item">
@@ -61,12 +74,17 @@ const TodoItem = memo(function TodoItem(props) {
 })
 
 const Todos = memo(function Todos(props) {
-    const { todos, dispatch } = props
+    const { todos, removeTodo, toggleTodo } = props
     return (
         <ul className="todos">
             {todos.map((todo) => {
                 return (
-                    <TodoItem key={todo.id} todo={todo} dispatch={dispatch} />
+                    <TodoItem
+                        key={todo.id}
+                        todo={todo}
+                        removeTodo={removeTodo}
+                        toggleTodo={toggleTodo}
+                    />
                 )
             })}
         </ul>
@@ -117,8 +135,16 @@ function TodoList() {
 
     return (
         <div className="todo-list">
-            <Control dispatch={dispatch} />
-            <Todos todos={todos} dispatch={dispatch} />
+            <Control
+                {...bindActionCreators({ addTodo: createAdd }, dispatch)}
+            />
+            <Todos
+                todos={todos}
+                {...bindActionCreators(
+                    { removeTodo: createRemove, toggleTodo: createToggle },
+                    dispatch
+                )}
+            />
         </div>
     )
 }
