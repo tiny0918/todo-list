@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react'
 import './App.css'
 import { createSet, createAdd, createRemove, createToggle } from './actions'
+import reducer from './reducers'
+
 let idSeq = Date.now()
 
 function bindActionCreators(actionCreators, dispatch) {
@@ -96,43 +98,6 @@ const LS_KEY = '_$-todos_'
 function TodoList() {
     const [todos, setTodos] = useState([])
     const [incrementCount, setIncrementCount] = useState(0)
-
-    function reducer(state, action) {
-        const { type, payload } = action
-        const { todos } = state
-        switch (type) {
-            case 'set':
-                return {
-                    ...state,
-                    todos: payload,
-                    incrementCount: incrementCount + 1,
-                }
-            case 'add':
-                return {
-                    ...state,
-                    todos: [...todos, payload],
-                    incrementCount: incrementCount + 1,
-                }
-            case 'remove':
-                return {
-                    ...state,
-                    todos: todos.filter((todo) => todo.id !== payload),
-                }
-            case 'toggle':
-                return {
-                    ...state,
-                    todos: todos.map((todo) => {
-                        return todo.id === payload
-                            ? {
-                                  ...todo,
-                                  complete: !todo.complete,
-                              }
-                            : todo
-                    }),
-                }
-            default:
-        }
-    }
 
     const dispatch = useCallback(
         (action) => {
